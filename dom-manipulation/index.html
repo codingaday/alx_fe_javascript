@@ -11,42 +11,39 @@
         margin: 0 auto;
         padding: 20px;
       }
-      #quoteDisplay {
+      .quote-container {
         margin: 20px 0;
         padding: 20px;
         border: 1px solid #ddd;
-        min-height: 60px;
       }
       button {
         padding: 8px 16px;
         cursor: pointer;
       }
+      select,
       input {
-        margin-right: 10px;
+        margin: 0 10px 10px 0;
         padding: 8px;
       }
-      .form-section {
-        margin-top: 20px;
+      .quote-item {
+        margin-bottom: 15px;
+        padding: 10px;
+        background-color: #f8f9fa;
       }
     </style>
   </head>
   <body>
     <h1>Dynamic Quote Generator</h1>
+
     <div>
-      <select id="categorySelect">
+      <select id="categoryFilter">
         <option value="all">All Categories</option>
       </select>
-      <button id="newQuote">Show New Quote</button>
+      <button id="newQuote">Show Random Quote</button>
     </div>
-    <div id="quoteDisplay"></div>
 
-    <div class="data-section">
-      <div class="button-group">
-        <input type="file" id="importFile" accept=".json" />
-        <button onclick="handleFileImport()">Import Quotes</button>
-        <button onclick="exportToJson()">Export Quotes</button>
-      </div>
-    </div>
+    <div id="quoteContainer" class="quote-container"></div>
+
     <script src="script.js"></script>
   </body>
 </html>
