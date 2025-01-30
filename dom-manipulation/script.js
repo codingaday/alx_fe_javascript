@@ -1,261 +1,191 @@
-// Server Simulation & Sync Module
+// State management
+const quoteState = {
+  quotes: JSON.parse(localStorage.getItem("quotes")) || [],
+  conflicts: [],
+  pendingChanges: [],
+};
+
+// Server simulation constants
 const SERVER_URL = "https://jsonplaceholder.typicode.com/posts";
-const SYNC_INTERVAL = 30000; // 30 seconds
+const SYNC_INTERVAL = 30000;
 
-class QuoteSyncer {
-  constructor() {
-    this.quotes = JSON.parse(localStorage.getItem("quotes")) || [];
-    this.pendingChanges = [];
-    this.conflicts = [];
-    this.init();
-  }
+// DOM elements
+const notificationContainer = document.createElement("div");
+notificationContainer.id = "notifications";
+document.body.appendChild(notificationContainer);
 
-  init() {
-    this.setupEventListeners();
-    this.syncWithServer();
-    setInterval(() => this.syncWithServer(), SYNC_INTERVAL);
-  }
-
-  async syncWithServer() {
-    try {
-      const serverQuotes = await this.fetchServerQuotes();
-      const mergedQuotes = this.mergeQuotes(serverQuotes);
-
-      localStorage.setItem("quotes", JSON.stringify(mergedQuotes));
-      this.quotes = mergedQuotes;
-
-      if (this.conflicts.length > 0) {
-        this.showConflictResolution();
-      }
-
-      this.updateUI();
-      this.showNotification("Data synced successfully");
-    } catch (error) {
-      this.showNotification("Sync failed: " + error.message, true);
-    }
-  }
-
-  // Add to QuoteSyncer class
-  async fetchQuotesFromServer() {
-    try {
-      const response = await fetch(SERVER_URL);
-      if (!response.ok) throw new Error("Server response not OK");
-
-      const serverData = await response.json();
-      return serverData.map((post) => ({
-        id: `server-${post.id}`,
-        text: post.title,
-        category: post.body.substring(0, 15), // Simulate categories
-        timestamp: Date.now(),
-      }));
-    } catch (error) {
-      this.showNotification(`Failed to fetch quotes: ${error.message}`, true);
-      return [];
-    }
-  }
-
-  // Update syncWithServer method to use the new function
-  async syncWithServer() {
-    try {
-      const serverQuotes = await this.fetchQuotesFromServer();
-      // Rest of sync logic remains the same
-    } catch (error) {
-      // Error handling
-    }
-  }
-
-  // Add to QuoteSyncer class
-  async syncQuotes() {
-    try {
-      // 1. Fetch server data
-      const serverQuotes = await this.fetchQuotesFromServer();
-
-      // 2. Merge with local data
-      const mergedQuotes = this.mergeData(serverQuotes, this.quotes);
-
-      // 3. Update storage and state
-      localStorage.setItem("quotes", JSON.stringify(mergedQuotes));
-      this.quotes = mergedQuotes;
-
-      // 4. Handle conflicts
-      if (this.conflicts.length > 0) {
-        this.showConflictUI();
-      }
-
-      // 5. Update UI and notify
-      this.updateUI();
-      this.showNotification("Sync completed", false);
-
-      // 6. Retry pending changes
-      await this.flushPendingChanges();
-    } catch (error) {
-      this.showNotification(`Sync failed: ${error.message}`, true);
-    }
-  }
-
-  // Supporting method for data merging
-  mergeData(serverData, localData) {
-    return [...serverData, ...localData].reduce((acc, quote) => {
-      const existing = acc.find((q) => q.id === quote.id);
-      if (!existing) {
-        acc.push(quote);
-      } else if (quote.timestamp > existing.timestamp) {
-        acc = acc.map((q) => (q.id === quote.id ? quote : q));
-      }
-      return acc;
-    }, []);
-  }
-
-  // Add to QuoteSyncer class
-  async postQuoteToServer(quote) {
-    try {
-      const response = await fetch(SERVER_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer mock-token", // Example security header
-        },
-        body: JSON.stringify({
-          title: quote.text,
-          body: quote.category,
-          userId: 1, // Mock API required field
-        }),
-      });
-
-      if (!response.ok) throw new Error("Post failed");
-      return await response.json();
-    } catch (error) {
-      this.pendingChanges.push(quote);
-      this.showNotification("Failed to save to server - queued locally", true);
-      return null;
-    }
-  }
-
-  // Update addQuote method to use this
-  async addQuote(quote) {
-    await this.postQuoteToServer(quote);
-    // Rest of existing logic
-  }
-
-  async fetchServerQuotes() {
+// Server communication
+async function fetchQuotesFromServer() {
+  try {
     const response = await fetch(SERVER_URL);
-    return (await response.json()).map((post) => ({
+    if (!response.ok) throw new Error("Server error");
+    const data = await response.json();
+    return data.map((post) => ({
       id: `server-${post.id}`,
       text: post.title,
       category: "general",
       timestamp: Date.now(),
     }));
-  }
-
-  mergeQuotes(serverQuotes) {
-    const quoteMap = new Map();
-    const conflicts = [];
-
-    // Add server quotes first (higher priority)
-    serverQuotes.forEach((quote) => {
-      quoteMap.set(quote.id, quote);
-    });
-
-    // Merge local quotes
-    this.quotes.forEach((localQuote) => {
-      const serverQuote = quoteMap.get(localQuote.id);
-
-      if (serverQuote) {
-        if (serverQuote.timestamp > localQuote.timestamp) {
-          conflicts.push({ server: serverQuote, local: localQuote });
-          quoteMap.set(localQuote.id, serverQuote);
-        } else {
-          conflicts.push({ server: serverQuote, local: localQuote });
-          quoteMap.set(localQuote.id, localQuote);
-        }
-      } else {
-        quoteMap.set(localQuote.id, localQuote);
-      }
-    });
-
-    this.conflicts = conflicts;
-    return Array.from(quoteMap.values());
-  }
-
-  showConflictResolution() {
-    const resolutionDiv = document.createElement("div");
-    resolutionDiv.className = "conflict-resolution";
-    resolutionDiv.innerHTML = `
-      <h3>Resolve Conflicts (${this.conflicts.length})</h3>
-      ${this.conflicts
-        .map(
-          (conflict) => `
-        <div class="conflict-item">
-          <p><strong>Server Version:</strong> ${conflict.server.text}</p>
-          <p><strong>Your Version:</strong> ${conflict.local.text}</p>
-          <div class="conflict-actions">
-            <button data-id="${conflict.server.id}" data-version="server">
-              Keep Server Version
-            </button>
-            <button data-id="${conflict.local.id}" data-version="local">
-              Keep Local Version
-            </button>
-          </div>
-        </div>
-      `
-        )
-        .join("")}
-    `;
-
-    document.body.appendChild(resolutionDiv);
-    this.addConflictListeners(resolutionDiv);
-  }
-
-  addConflictListeners(resolutionDiv) {
-    resolutionDiv.querySelectorAll("button").forEach((button) => {
-      button.addEventListener("click", (e) => {
-        const quoteId = e.target.dataset.id;
-        const version = e.target.dataset.version;
-        this.resolveConflict(quoteId, version);
-        resolutionDiv.remove();
-      });
-    });
-  }
-
-  resolveConflict(quoteId, version) {
-    this.quotes = this.quotes.filter(
-      (quote) =>
-        quote.id !==
-        (version === "server" ? quoteId : quoteId.replace("server", "local"))
-    );
-
-    if (version === "server") {
-      this.quotes.push(
-        this.conflicts.find((c) => c.server.id === quoteId).server
-      );
-    }
-
-    localStorage.setItem("quotes", JSON.stringify(this.quotes));
-  }
-
-  // UI Utilities
-  showNotification(message, isError = false) {
-    const notification = document.createElement("div");
-    notification.className = `notification ${isError ? "error" : "success"}`;
-    notification.textContent = message;
-    document.body.appendChild(notification);
-
-    setTimeout(() => notification.remove(), 3000);
-  }
-
-  updateUI() {
-    // Existing UI update logic from previous implementation
-    const event = new Event("quotesUpdated");
-    document.dispatchEvent(event);
-  }
-
-  setupEventListeners() {
-    document.getElementById("manualSync").addEventListener("click", () => {
-      this.syncWithServer();
-      this.showNotification("Manual sync initiated...");
-    });
+  } catch (error) {
+    showNotification(`Server error: ${error.message}`, "error");
+    return [];
   }
 }
 
-// Initialize the syncer
-const quoteSyncer = new QuoteSyncer();
+async function postQuoteToServer(quote) {
+  try {
+    await fetch(SERVER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: quote.text,
+        body: quote.category,
+        userId: 1,
+      }),
+    });
+  } catch (error) {
+    quoteState.pendingChanges.push(quote);
+    showNotification("Failed to save to server - changes queued", "warning");
+  }
+}
+
+// Sync logic
+async function syncQuotes() {
+  try {
+    const serverQuotes = await fetchQuotesFromServer();
+    const mergeResult = mergeQuotes(serverQuotes, quoteState.quotes);
+
+    quoteState.quotes = mergeResult.mergedQuotes;
+    quoteState.conflicts = mergeResult.conflicts;
+
+    localStorage.setItem("quotes", JSON.stringify(quoteState.quotes));
+
+    if (mergeResult.conflicts.length > 0) {
+      showConflictResolution(mergeResult.conflicts);
+    }
+
+    showNotification(
+      `Synced ${mergeResult.newQuotes} new quotes, ` +
+        `${mergeResult.conflicts.length} conflicts detected`,
+      mergeResult.conflicts.length ? "warning" : "success"
+    );
+  } catch (error) {
+    showNotification(`Sync failed: ${error.message}`, "error");
+  }
+}
+
+function mergeQuotes(serverQuotes, localQuotes) {
+  const merged = [];
+  const conflicts = [];
+  let newQuotes = 0;
+
+  // Process server quotes first
+  serverQuotes.forEach((serverQuote) => {
+    const localMatch = localQuotes.find((q) => q.id === serverQuote.id);
+
+    if (!localMatch) {
+      merged.push(serverQuote);
+      newQuotes++;
+    } else if (serverQuote.text !== localMatch.text) {
+      conflicts.push({ server: serverQuote, local: localMatch });
+      merged.push(
+        serverQuote.timestamp > localMatch.timestamp ? serverQuote : localMatch
+      );
+    } else {
+      merged.push(serverQuote);
+    }
+  });
+
+  // Add remaining local quotes
+  localQuotes.forEach((localQuote) => {
+    if (!merged.some((q) => q.id === localQuote.id)) {
+      merged.push(localQuote);
+    }
+  });
+
+  return { mergedQuotes: merged, conflicts, newQuotes };
+}
+
+// Conflict resolution UI
+function showConflictResolution(conflicts) {
+  const resolutionDiv = document.createElement("div");
+  resolutionDiv.className = "conflict-resolution";
+  resolutionDiv.innerHTML = `
+   <h3>Resolve Conflicts (${conflicts.length})</h3>
+   <div class="conflict-list">
+     ${conflicts
+       .map(
+         (conflict, index) => `
+       <div class="conflict-item">
+         <div class="server-version">
+           <h4>Server Version:</h4>
+           <p>${conflict.server.text}</p>
+           <small>${new Date(
+             conflict.server.timestamp
+           ).toLocaleString()}</small>
+         </div>
+         <div class="local-version">
+           <h4>Your Version:</h4>
+           <p>${conflict.local.text}</p>
+           <small>${new Date(conflict.local.timestamp).toLocaleString()}</small>
+         </div>
+         <div class="actions">
+           <button data-index="${index}" data-action="server">Use Server</button>
+           <button data-index="${index}" data-action="local">Keep Yours</button>
+         </div>
+       </div>
+     `
+       )
+       .join("")}
+   </div>
+ `;
+
+  resolutionDiv.querySelectorAll("button").forEach((button) => {
+    button.addEventListener("click", (e) => {
+      const index = parseInt(e.target.dataset.index);
+      const action = e.target.dataset.action;
+      resolveConflict(index, action);
+      if (conflicts.length === 0) resolutionDiv.remove();
+    });
+  });
+
+  document.body.appendChild(resolutionDiv);
+}
+
+function resolveConflict(index, action) {
+  const conflict = quoteState.conflicts[index];
+  quoteState.quotes = quoteState.quotes.filter(
+    (q) => q.id !== conflict.server.id && q.id !== conflict.local.id
+  );
+
+  if (action === "server") {
+    quoteState.quotes.push(conflict.server);
+  } else {
+    quoteState.quotes.push(conflict.local);
+  }
+
+  localStorage.setItem("quotes", JSON.stringify(quoteState.quotes));
+  quoteState.conflicts.splice(index, 1);
+}
+
+// UI helpers
+function showNotification(message, type = "info") {
+  const notification = document.createElement("div");
+  notification.className = `notification ${type}`;
+  notification.textContent = message;
+  notificationContainer.appendChild(notification);
+
+  setTimeout(() => notification.remove(), type === "error" ? 5000 : 3000);
+}
+
+// Initialize
+document.addEventListener("DOMContentLoaded", () => {
+  // Initial sync
+  syncQuotes();
+
+  // Periodic sync
+  setInterval(syncQuotes, SYNC_INTERVAL);
+
+  // Manual sync button
+  document.getElementById("manualSync")?.addEventListener("click", syncQuotes);
+});
