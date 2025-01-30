@@ -39,6 +39,14 @@
       <button id="newQuote">Show New Quote</button>
     </div>
     <div id="quoteDisplay"></div>
+
+    <div class="data-section">
+      <div class="button-group">
+        <input type="file" id="importFile" accept=".json" />
+        <button onclick="handleFileImport()">Import Quotes</button>
+        <button onclick="exportToJson()">Export Quotes</button>
+      </div>
+    </div>
     <script src="script.js"></script>
   </body>
 </html>
