@@ -19,6 +19,7 @@ const categoryFilter = document.getElementById("categoryFilter");
 const quoteContainer = document.getElementById("quoteContainer");
 
 // Save to localStorage helper
+// Saving
 const saveQuotes = () => {
   localStorage.setItem("quotes", JSON.stringify(quotes));
   localStorage.setItem("selectedCategory", categoryFilter.value);
@@ -49,16 +50,28 @@ const filterQuotes = () => {
       ? quotes
       : quotes.filter((quote) => quote.category === selectedCategory);
 
-  quoteContainer.innerHTML = filteredQuotes
-    .map(
-      (quote) => `
-     <div class="quote-item">
-         <blockquote>"${quote.text}"</blockquote>
-         <em>- ${quote.category}</em>
-     </div>
- `
-    )
-    .join("");
+  quoteContainer.innerHTML = ""; // Clear container
+
+  if (filteredQuotes.length === 0) {
+    const message = document.createElement("p");
+    message.textContent = "No quotes found in this category";
+    quoteContainer.appendChild(message);
+    return;
+  }
+
+  filteredQuotes.forEach((quote) => {
+    const container = document.createElement("div");
+    container.className = "quote-item";
+
+    const blockquote = document.createElement("blockquote");
+    blockquote.textContent = `"${quote.text}"`;
+
+    const category = document.createElement("em");
+    category.textContent = `- ${quote.category}`;
+
+    container.append(blockquote, category);
+    quoteContainer.appendChild(container);
+  });
 
   saveQuotes();
 };
@@ -72,7 +85,7 @@ const showRandomQuote = () => {
       : quotes.filter((quote) => quote.category === selectedCategory);
 
   if (filteredQuotes.length === 0) {
-    quoteContainer.innerHTML = `<p>No quotes available in this category</p>`;
+    quoteContainer.innerHTML = `<p>No quotes found in this category</p>`;
     return;
   }
 
@@ -120,12 +133,9 @@ const addQuote = () => {
 // Initialize application
 document.addEventListener("DOMContentLoaded", () => {
   populateCategories();
-  createAddQuoteForm();
-  filterQuotes(); // Initial filter
-
-  // Event listeners
-  categoryFilter.addEventListener("change", filterQuotes);
-  document
-    .getElementById("newQuote")
-    .addEventListener("click", showRandomQuote);
+  filterQuotes(); // Restores last filter
 });
+
+// Event listeners
+categoryFilter.addEventListener("change", filterQuotes);
+document.getElementById("newQuote").addEventListener("click", showRandomQuote);
