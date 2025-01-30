@@ -31,16 +31,17 @@ const populateCategories = () => {
   const categories = ["all", ...new Set(quotes.map((quote) => quote.category))];
   const storedCategory = localStorage.getItem("selectedCategory") || "all";
 
-  categoryFilter.innerHTML = categories
-    .map(
-      (category) =>
-        `<option value="${category}" ${
-          category === storedCategory ? "selected" : ""
-        }>
-         ${category}
-     </option>`
-    )
-    .join("");
+  // Clear existing options
+  categoryFilter.innerHTML = '<option value="all">All Categories</option>';
+
+  categories.forEach((category) => {
+    if (category === "all") return; // Skip duplicate "all"
+    const option = document.createElement("option");
+    option.value = category;
+    option.textContent = category; // ← Uses textContent for safety
+    option.selected = category === storedCategory;
+    categoryFilter.appendChild(option); // ← Proper DOM method
+  });
 };
 
 // Filter quotes based on selected category
