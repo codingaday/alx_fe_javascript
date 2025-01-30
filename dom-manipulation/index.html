@@ -11,10 +11,11 @@
         margin: 0 auto;
         padding: 20px;
       }
-      .quote-container {
+      #quoteDisplay {
         margin: 20px 0;
         padding: 20px;
         border: 1px solid #ddd;
+        min-height: 100px;
       }
       button {
         padding: 8px 16px;
@@ -22,13 +23,11 @@
       }
       select,
       input {
-        margin: 0 10px 10px 0;
+        margin-right: 10px;
         padding: 8px;
       }
-      .quote-item {
-        margin-bottom: 15px;
-        padding: 10px;
-        background-color: #f8f9fa;
+      .form-section {
+        margin-top: 20px;
       }
     </style>
   </head>
@@ -39,16 +38,16 @@
       <select id="categoryFilter">
         <option value="all">All Categories</option>
       </select>
-      <button id="newQuote">Show Random Quote</button>
+      <button id="newQuote">Show New Random Quote</button>
     </div>
 
-    <div id="quoteDisplay" class="quote-container"></div>
-    <!-- ////////////////////////////////////////// -->
+    <div id="quoteDisplay"></div>
 
-    <!-- Add to HTML -->
-    <div id="syncStatus" class="sync-status"></div>
-    <button onclick="manualSync()">Manual Sync</button>
-    <div id="conflictResolution" class="conflict-modal"></div>
+    <div class="form-section">
+      <input id="newQuoteText" type="text" placeholder="Enter a new quote" />
+      <input id="newQuoteCategory" type="text" placeholder="Enter category" />
+      <button onclick="addQuote()">Add Quote</button>
+    </div>
 
     <script src="script.js"></script>
   </body>
