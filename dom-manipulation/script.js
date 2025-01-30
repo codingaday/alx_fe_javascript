@@ -16,7 +16,7 @@ let quotes = JSON.parse(localStorage.getItem("quotes")) || [
 
 // DOM Elements
 const categoryFilter = document.getElementById("categoryFilter");
-const quoteContainer = document.getElementById("quoteContainer");
+const quoteDisplay = document.getElementById("quoteDisplay");
 
 // Save to localStorage helper
 // Saving
@@ -50,28 +50,16 @@ const filterQuotes = () => {
       ? quotes
       : quotes.filter((quote) => quote.category === selectedCategory);
 
-  quoteContainer.innerHTML = ""; // Clear container
-
-  if (filteredQuotes.length === 0) {
-    const message = document.createElement("p");
-    message.textContent = "No quotes found in this category";
-    quoteContainer.appendChild(message);
-    return;
-  }
-
-  filteredQuotes.forEach((quote) => {
-    const container = document.createElement("div");
-    container.className = "quote-item";
-
-    const blockquote = document.createElement("blockquote");
-    blockquote.textContent = `"${quote.text}"`;
-
-    const category = document.createElement("em");
-    category.textContent = `- ${quote.category}`;
-
-    container.append(blockquote, category);
-    quoteContainer.appendChild(container);
-  });
+  quoteDisplay.innerHTML = filteredQuotes
+    .map(
+      (quote) => `
+     <div class="quote-item">
+         <blockquote>"${quote.text}"</blockquote>
+         <em>- ${quote.category}</em>
+     </div>
+ `
+    )
+    .join("");
 
   saveQuotes();
 };
@@ -85,14 +73,14 @@ const showRandomQuote = () => {
       : quotes.filter((quote) => quote.category === selectedCategory);
 
   if (filteredQuotes.length === 0) {
-    quoteContainer.innerHTML = `<p>No quotes found in this category</p>`;
+    quoteDisplay.innerHTML = `<p>No quotes found in this category</p>`;
     return;
   }
 
   const randomIndex = Math.floor(Math.random() * filteredQuotes.length);
   const randomQuote = filteredQuotes[randomIndex];
 
-  quoteContainer.innerHTML = `
+  quoteDisplay.innerHTML = `
      <div class="quote-item">
          <blockquote>"${randomQuote.text}"</blockquote>
          <em>- ${randomQuote.category}</em>
