@@ -64,6 +64,37 @@ class QuoteSyncer {
     }
   }
 
+  // Add to QuoteSyncer class
+  async postQuoteToServer(quote) {
+    try {
+      const response = await fetch(SERVER_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer mock-token", // Example security header
+        },
+        body: JSON.stringify({
+          title: quote.text,
+          body: quote.category,
+          userId: 1, // Mock API required field
+        }),
+      });
+
+      if (!response.ok) throw new Error("Post failed");
+      return await response.json();
+    } catch (error) {
+      this.pendingChanges.push(quote);
+      this.showNotification("Failed to save to server - queued locally", true);
+      return null;
+    }
+  }
+
+  // Update addQuote method to use this
+  async addQuote(quote) {
+    await this.postQuoteToServer(quote);
+    // Rest of existing logic
+  }
+
   async fetchServerQuotes() {
     const response = await fetch(SERVER_URL);
     return (await response.json()).map((post) => ({
