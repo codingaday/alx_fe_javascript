@@ -101,23 +101,6 @@ const createAddQuoteForm = () => {
   document.body.appendChild(form);
 };
 
-const addQuote = () => {
-  const textInput = document.getElementById("newQuoteText");
-  const categoryInput = document.getElementById("newQuoteCategory");
-
-  const text = textInput.value.trim();
-  const category = categoryInput.value.trim();
-
-  if (text && category) {
-    quotes.push({ text, category });
-    saveQuotes();
-    populateCategories();
-    filterQuotes();
-    textInput.value = "";
-    categoryInput.value = "";
-  }
-};
-
 // Initialize application
 document.addEventListener("DOMContentLoaded", () => {
   populateCategories();
@@ -127,3 +110,118 @@ document.addEventListener("DOMContentLoaded", () => {
 // Event listeners
 categoryFilter.addEventListener("change", filterQuotes);
 document.getElementById("newQuote").addEventListener("click", showRandomQuote);
+//////////////////////////////////////////////
+
+// Server simulation constants
+const API_URL = "https://jsonplaceholder.typicode.com/posts";
+const SYNC_INTERVAL = 30000; // 30 seconds
+
+// Enhanced quote structure
+
+let pendingChanges = [];
+
+// Server simulation layer
+const ServerSimulator = {
+  async getServerQuotes() {
+    try {
+      const response = await fetch(API_URL);
+      const serverData = await response.json();
+      return serverData.map((post) => ({
+        id: `server-${post.id}`,
+        text: post.title,
+        category: "server",
+        timestamp: Date.now(),
+      }));
+    } catch (error) {
+      console.error("Server unavailable, using local data");
+      return [];
+    }
+  },
+
+  async postQuote(quote) {
+    try {
+      await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify(quote),
+        headers: { "Content-type": "application/json; charset=UTF-8" },
+      });
+    } catch (error) {
+      pendingChanges.push(quote);
+    }
+  },
+};
+
+// Enhanced sync logic
+const syncWithServer = async () => {
+  const serverQuotes = await ServerSimulator.getServerQuotes();
+  const localQuotes = JSON.parse(localStorage.getItem("quotes")) || [];
+
+  // Conflict resolution
+  const serverIds = new Set(serverQuotes.map((q) => q.id));
+  const mergedQuotes = [
+    ...localQuotes.filter((q) => !serverIds.has(q.id)),
+    ...serverQuotes,
+  ];
+
+  // Merge pending changes
+  if (pendingChanges.length > 0) {
+    mergedQuotes.push(...pendingChanges);
+    pendingChanges = [];
+  }
+
+  localStorage.setItem("quotes", JSON.stringify(mergedQuotes));
+  quotes = mergedQuotes;
+  updateUI();
+  showNotification("Data synced with server");
+};
+
+// Enhanced quote management
+const addQuote = (text, category) => {
+  const newQuote = {
+    id: `local-${Date.now()}`,
+    text: text.trim(),
+    category: category.trim(),
+    timestamp: Date.now(),
+  };
+
+  quotes.push(newQuote);
+  ServerSimulator.postQuote(newQuote);
+  saveToLocal();
+  updateUI();
+};
+
+// Conflict UI management
+const showConflictResolution = (conflicts) => {
+  const resolutionDiv = document.getElementById("conflictResolution");
+  resolutionDiv.innerHTML = conflicts
+    .map(
+      (conflict) => `
+    <div class="conflict-item">
+      <p>Server: ${conflict.server.text}</p>
+      <p>Local: ${conflict.local.text}</p>
+      <button onclick="resolveConflict('${conflict.server.id}', 'keep-server')">
+        Keep Server Version
+      </button>
+      <button onclick="resolveConflict('${conflict.local.id}', 'keep-local')">
+        Keep Local Version
+      </button>
+    </div>
+  `
+    )
+    .join("");
+};
+
+// Sync helpers
+const manualSync = () => {
+  syncWithServer();
+  showNotification("Manual sync initiated...");
+};
+
+const showNotification = (message) => {
+  const statusDiv = document.getElementById("syncStatus");
+  statusDiv.textContent = message;
+  setTimeout(() => (statusDiv.textContent = ""), 3000);
+};
+
+// Initialize periodic sync
+document.addEventListener("DOMContentLoaded", () => {});
