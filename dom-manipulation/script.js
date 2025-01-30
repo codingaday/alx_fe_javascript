@@ -30,16 +30,16 @@ const populateCategories = () => {
   const categories = ["all", ...new Set(quotes.map((quote) => quote.category))];
   const storedCategory = localStorage.getItem("selectedCategory") || "all";
 
-  categoryFilter.innerHTML = categories
-    .map(
-      (category) =>
-        `<option value="${category}" ${
-          category === storedCategory ? "selected" : ""
-        }>
-         ${category}
-     </option>`
-    )
-    .join("");
+  // Clear existing options
+  categoryFilter.innerHTML = "";
+
+  categories.forEach((category) => {
+    const option = document.createElement("option");
+    option.value = category;
+    option.textContent = category; // ← textContent used here
+    option.selected = category === storedCategory;
+    categoryFilter.appendChild(option);
+  });
 };
 
 // Filter and display quotes based on selected category
