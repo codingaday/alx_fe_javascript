@@ -1,139 +1,337 @@
-// Add notification system
-function showNotification(message, type = "info") {
-  const notification = document.createElement("div");
-  notification.className = `notification ${type}`;
-  notification.innerHTML = `
-   <span>${message}</span>
-   <button class="dismiss-btn">×</button>
+// Server Simulation & Sync Module
+const SERVER_URL = "https://jsonplaceholder.typicode.com/posts";
+const SYNC_INTERVAL = 30000; // 30 seconds
+
+class QuoteSyncer {
+  constructor() {
+    this.quotes = JSON.parse(localStorage.getItem("quotes")) || [];
+    this.pendingChanges = [];
+    this.conflicts = [];
+    this.init();
+  }
+
+  init() {
+    this.setupEventListeners();
+    this.syncWithServer();
+    setInterval(() => this.syncWithServer(), SYNC_INTERVAL);
+  }
+
+  async syncWithServer() {
+    try {
+      const serverQuotes = await this.fetchServerQuotes();
+      const mergedQuotes = this.mergeQuotes(serverQuotes);
+
+      localStorage.setItem("quotes", JSON.stringify(mergedQuotes));
+      this.quotes = mergedQuotes;
+
+      if (this.conflicts.length > 0) {
+        this.showConflictResolution();
+      }
+
+      this.updateUI();
+      this.showNotification("Data synced successfully");
+    } catch (error) {
+      this.showNotification("Sync failed: " + error.message, true);
+    }
+  }
+
+  // Add to QuoteSyncer class
+  async fetchQuotesFromServer() {
+    try {
+      const response = await fetch(SERVER_URL);
+      if (!response.ok) throw new Error("Server response not OK");
+
+      const serverData = await response.json();
+      return serverData.map((post) => ({
+        id: `server-${post.id}`,
+        text: post.title,
+        category: post.body.substring(0, 15), // Simulate categories
+        timestamp: Date.now(),
+      }));
+    } catch (error) {
+      this.showNotification(`Failed to fetch quotes: ${error.message}`, true);
+      return [];
+    }
+  }
+
+  // Update syncWithServer method to use the new function
+  async syncWithServer() {
+    try {
+      const serverQuotes = await this.fetchQuotesFromServer();
+      // Rest of sync logic remains the same
+    } catch (error) {
+      // Error handling
+    }
+  }
+
+  // Add to QuoteSyncer class
+  async syncQuotes() {
+    try {
+      // 1. Fetch server data
+      const serverQuotes = await this.fetchQuotesFromServer();
+
+      // 2. Merge with local data
+      const mergedQuotes = this.mergeData(serverQuotes, this.quotes);
+
+      // 3. Update storage and state
+      localStorage.setItem("quotes", JSON.stringify(mergedQuotes));
+      this.quotes = mergedQuotes;
+
+      // 4. Handle conflicts
+      if (this.conflicts.length > 0) {
+        this.showConflictUI();
+      }
+
+      // 5. Update UI and notify
+      this.updateUI();
+      this.showNotification("Sync completed", false);
+
+      // 6. Retry pending changes
+      await this.flushPendingChanges();
+    } catch (error) {
+      this.showNotification(`Sync failed: ${error.message}`, true);
+    }
+  }
+
+  // Supporting method for data merging
+  mergeData(serverData, localData) {
+    return [...serverData, ...localData].reduce((acc, quote) => {
+      const existing = acc.find((q) => q.id === quote.id);
+      if (!existing) {
+        acc.push(quote);
+      } else if (quote.timestamp > existing.timestamp) {
+        acc = acc.map((q) => (q.id === quote.id ? quote : q));
+      }
+      return acc;
+    }, []);
+  }
+
+  // Add to QuoteSyncer class
+  async postQuoteToServer(quote) {
+    try {
+      const response = await fetch(SERVER_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer mock-token", // Example security header
+        },
+        body: JSON.stringify({
+          title: quote.text,
+          body: quote.category,
+          userId: 1, // Mock API required field
+        }),
+      });
+
+      if (!response.ok) throw new Error("Post failed");
+      return await response.json();
+    } catch (error) {
+      this.pendingChanges.push(quote);
+      this.showNotification("Failed to save to server - queued locally", true);
+      return null;
+    }
+  }
+
+  // Update addQuote method to use this
+  async addQuote(quote) {
+    await this.postQuoteToServer(quote);
+    // Rest of existing logic
+  }
+
+  async fetchServerQuotes() {
+    const response = await fetch(SERVER_URL);
+    return (await response.json()).map((post) => ({
+      id: `server-${post.id}`,
+      text: post.title,
+      category: "general",
+      timestamp: Date.now(),
+    }));
+  }
+
+  mergeQuotes(serverQuotes) {
+    const quoteMap = new Map();
+    const conflicts = [];
+
+    // Add server quotes first (higher priority)
+    serverQuotes.forEach((quote) => {
+      quoteMap.set(quote.id, quote);
+    });
+
+    // Merge local quotes
+    this.quotes.forEach((localQuote) => {
+      const serverQuote = quoteMap.get(localQuote.id);
+
+      if (serverQuote) {
+        if (serverQuote.timestamp > localQuote.timestamp) {
+          conflicts.push({ server: serverQuote, local: localQuote });
+          quoteMap.set(localQuote.id, serverQuote);
+        } else {
+          conflicts.push({ server: serverQuote, local: localQuote });
+          quoteMap.set(localQuote.id, localQuote);
+        }
+      } else {
+        quoteMap.set(localQuote.id, localQuote);
+      }
+    });
+
+    this.conflicts = conflicts;
+    return Array.from(quoteMap.values());
+  }
+
+  showConflictResolution() {
+    const resolutionDiv = document.createElement("div");
+    resolutionDiv.className = "conflict-resolution";
+    resolutionDiv.innerHTML = `
+      <h3>Resolve Conflicts (${this.conflicts.length})</h3>
+      ${this.conflicts
+        .map(
+          (conflict) => `
+        <div class="conflict-item">
+          <p><strong>Server Version:</strong> ${conflict.server.text}</p>
+          <p><strong>Your Version:</strong> ${conflict.local.text}</p>
+          <div class="conflict-actions">
+            <button data-id="${conflict.server.id}" data-version="server">
+              Keep Server Version
+            </button>
+            <button data-id="${conflict.local.id}" data-version="local">
+              Keep Local Version
+            </button>
+          </div>
+        </div>
+      `
+        )
+        .join("")}
+    `;
+
+    document.body.appendChild(resolutionDiv);
+    this.addConflictListeners(resolutionDiv);
+  }
+
+  addConflictListeners(resolutionDiv) {
+    resolutionDiv.querySelectorAll("button").forEach((button) => {
+      button.addEventListener("click", (e) => {
+        const quoteId = e.target.dataset.id;
+        const version = e.target.dataset.version;
+        this.resolveConflict(quoteId, version);
+        resolutionDiv.remove();
+      });
+    });
+  }
+
+  // Add to QuoteSyncer class
+  showSyncNotification(message, isConflict = false) {
+    const notification = document.createElement("div");
+    notification.className = `sync-notification ${
+      isConflict ? "conflict" : ""
+    }`;
+
+    notification.innerHTML = `
+   <div class="notification-content">
+     <span>${message}</span>
+     ${
+       isConflict
+         ? `<button onclick="this.parentElement.parentElement.remove()">Dismiss</button>`
+         : ""
+     }
+   </div>
  `;
 
-  // Auto-remove after 5 seconds
-  setTimeout(() => notification.remove(), 5000);
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), isConflict ? 10000 : 3000);
+  }
 
-  // Manual dismiss
-  notification.querySelector(".dismiss-btn").addEventListener("click", () => {
-    notification.remove();
-  });
+  showConflictResolution() {
+    this.showSyncNotification(
+      `${this.conflicts.length} conflicts detected!`,
+      true
+    );
+    // ... rest of conflict UI ...
+  }
 
-  document.getElementById("notifications").appendChild(notification);
-}
-
-// Modified sync function with notifications
-async function syncQuotes() {
-  showNotification("Syncing with server...", "pending");
-
-  try {
-    const serverQuotes = await fetchQuotesFromServer();
-    const mergeResult = mergeQuotes(serverQuotes, quoteState.quotes);
-
-    quoteState.quotes = mergeResult.mergedQuotes;
-    quoteState.conflicts = mergeResult.conflicts;
-
-    localStorage.setItem("quotes", JSON.stringify(quoteState.quotes));
-
-    const message =
-      mergeResult.conflicts.length > 0
-        ? `Synced ${mergeResult.newQuotes} items. ${mergeResult.conflicts.length} conflicts need resolution`
-        : `Synced ${mergeResult.newQuotes} new quotes successfully`;
-
-    showNotification(
-      message,
-      mergeResult.conflicts.length ? "warning" : "success"
+  resolveConflict(quoteId, version) {
+    this.quotes = this.quotes.filter(
+      (quote) =>
+        quote.id !==
+        (version === "server" ? quoteId : quoteId.replace("server", "local"))
     );
 
-    if (mergeResult.conflicts.length > 0) {
-      showConflictResolution(mergeResult.conflicts);
-      showNotification("Conflicts detected! Click to resolve", "error");
+    if (version === "server") {
+      this.quotes.push(
+        this.conflicts.find((c) => c.server.id === quoteId).server
+      );
     }
-  } catch (error) {
-    showNotification(`Sync failed: ${error.message}`, "error");
+
+    localStorage.setItem("quotes", JSON.stringify(this.quotes));
+  }
+
+  // UI Utilities
+  showNotification(message, isError = false) {
+    const notification = document.createElement("div");
+    notification.className = `notification ${isError ? "error" : "success"}`;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+
+    setTimeout(() => notification.remove(), 3000);
+  }
+
+  updateUI() {
+    // Existing UI update logic from previous implementation
+    const event = new Event("quotesUpdated");
+    document.dispatchEvent(event);
+  }
+
+  // Usage examples
+  // In the syncWithServer method:
+  // Updated sync logic in QuoteSyncer class
+  async syncWithServer() {
+    try {
+      const serverQuotes = await this.fetchQuotesFromServer();
+
+      // 1. Identify truly new quotes (never seen before)
+      const newQuotes = serverQuotes.filter(
+        (serverQuote) =>
+          !this.quotes.some((localQuote) => localQuote.id === serverQuote.id)
+      );
+
+      // 2. Detect potential conflicts
+      const conflicts = this.quotes.filter((localQuote) => {
+        const serverQuote = serverQuotes.find((sq) => sq.id === localQuote.id);
+        return serverQuote && serverQuote.timestamp !== localQuote.timestamp;
+      });
+
+      // 3. Merge data with conflict resolution
+      const mergedQuotes = [
+        ...this.quotes.filter(
+          (localQuote) => !serverQuotes.some((sq) => sq.id === localQuote.id)
+        ),
+        ...serverQuotes,
+      ];
+
+      // 4. Update state and storage
+      this.quotes = mergedQuotes;
+      this.conflicts = conflicts;
+      localStorage.setItem("quotes", JSON.stringify(mergedQuotes));
+
+      // 5. Show accurate notification
+      this.showNotification(
+        `Synced ${newQuotes.length} new quotes. ` +
+          `Resolved ${conflicts.length} updates.`,
+        conflicts.length > 0
+      );
+
+      if (conflicts.length > 0) {
+        this.showConflictResolution(conflicts);
+      }
+    } catch (error) {
+      this.showNotification(`Sync failed: ${error.message}`, true);
+    }
+  }
+  setupEventListeners() {
+    document.getElementById("manualSync").addEventListener("click", () => {
+      this.syncWithServer();
+      this.showNotification("Manual sync initiated...");
+    });
   }
 }
 
-// Enhanced conflict UI
-function showConflictResolution(conflicts) {
-  const resolutionDiv = document.createElement("div");
-  resolutionDiv.className = "conflict-resolution";
-  resolutionDiv.innerHTML = `
-   <h3>Resolve Content Conflicts</h3>
-   <div class="conflict-counter">Conflicts found: ${conflicts.length}</div>
-   ${conflicts
-     .map(
-       (conflict, index) => `
-     <div class="conflict-item" data-id="${conflict.server.id}">
-       <div class="versions">
-         <div class="server-version">
-           <h4>Server Version</h4>
-           <p>${conflict.server.text}</p>
-           <small>Updated: ${new Date(
-             conflict.server.timestamp
-           ).toLocaleString()}</small>
-         </div>
-         <div class="local-version">
-           <h4>Your Version</h4>
-           <p>${conflict.local.text}</p>
-           <small>Updated: ${new Date(
-             conflict.local.timestamp
-           ).toLocaleString()}</small>
-         </div>
-       </div>
-       <div class="resolution-actions">
-         <button data-action="keep-server">Use Server Version</button>
-         <button data-action="keep-local">Keep Local Version</button>
-       </div>
-     </div>
-   `
-     )
-     .join("")}
- `;
-
-  document.body.appendChild(resolutionDiv);
-}
-
-// Add this CSS
-const style = document.createElement("style");
-style.textContent = `
- #notifications {
-   position: fixed;
-   top: 20px;
-   right: 20px;
-   z-index: 1000;
-   max-width: 300px;
- }
-
- .notification {
-   padding: 15px;
-   margin-bottom: 10px;
-   border-radius: 5px;
-   background: #f8f9fa;
-   box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-   display: flex;
-   justify-content: space-between;
-   align-items: center;
- }
-
- .notification.success { background: #d4edda; border-left: 4px solid #28a745; }
- .notification.error { background: #f8d7da; border-left: 4px solid #dc3545; }
- .notification.warning { background: #fff3cd; border-left: 4px solid #ffc107; }
- .notification.pending { background: #cce5ff; border-left: 4px solid #007bff; }
-
- .dismiss-btn {
-   background: none;
-   border: none;
-   cursor: pointer;
-   font-size: 1.2em;
-   margin-left: 10px;
- }
-
- .conflict-resolution {
-   position: fixed;
-   bottom: 20px;
-   left: 20px;
-   background: white;
-   padding: 20px;
-   box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-   max-width: 400px;
-   z-index: 1000;
- }
-`;
-document.head.appendChild(style);
+// Initialize the syncer
+const quoteSyncer = new QuoteSyncer();
