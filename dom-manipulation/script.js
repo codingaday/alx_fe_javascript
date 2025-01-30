@@ -65,6 +65,48 @@ class QuoteSyncer {
   }
 
   // Add to QuoteSyncer class
+  async syncQuotes() {
+    try {
+      // 1. Fetch server data
+      const serverQuotes = await this.fetchQuotesFromServer();
+
+      // 2. Merge with local data
+      const mergedQuotes = this.mergeData(serverQuotes, this.quotes);
+
+      // 3. Update storage and state
+      localStorage.setItem("quotes", JSON.stringify(mergedQuotes));
+      this.quotes = mergedQuotes;
+
+      // 4. Handle conflicts
+      if (this.conflicts.length > 0) {
+        this.showConflictUI();
+      }
+
+      // 5. Update UI and notify
+      this.updateUI();
+      this.showNotification("Sync completed", false);
+
+      // 6. Retry pending changes
+      await this.flushPendingChanges();
+    } catch (error) {
+      this.showNotification(`Sync failed: ${error.message}`, true);
+    }
+  }
+
+  // Supporting method for data merging
+  mergeData(serverData, localData) {
+    return [...serverData, ...localData].reduce((acc, quote) => {
+      const existing = acc.find((q) => q.id === quote.id);
+      if (!existing) {
+        acc.push(quote);
+      } else if (quote.timestamp > existing.timestamp) {
+        acc = acc.map((q) => (q.id === quote.id ? quote : q));
+      }
+      return acc;
+    }, []);
+  }
+
+  // Add to QuoteSyncer class
   async postQuoteToServer(quote) {
     try {
       const response = await fetch(SERVER_URL, {
