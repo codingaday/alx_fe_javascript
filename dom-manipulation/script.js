@@ -35,6 +35,35 @@ class QuoteSyncer {
     }
   }
 
+  // Add to QuoteSyncer class
+  async fetchQuotesFromServer() {
+    try {
+      const response = await fetch(SERVER_URL);
+      if (!response.ok) throw new Error("Server response not OK");
+
+      const serverData = await response.json();
+      return serverData.map((post) => ({
+        id: `server-${post.id}`,
+        text: post.title,
+        category: post.body.substring(0, 15), // Simulate categories
+        timestamp: Date.now(),
+      }));
+    } catch (error) {
+      this.showNotification(`Failed to fetch quotes: ${error.message}`, true);
+      return [];
+    }
+  }
+
+  // Update syncWithServer method to use the new function
+  async syncWithServer() {
+    try {
+      const serverQuotes = await this.fetchQuotesFromServer();
+      // Rest of sync logic remains the same
+    } catch (error) {
+      // Error handling
+    }
+  }
+
   async fetchServerQuotes() {
     const response = await fetch(SERVER_URL);
     return (await response.json()).map((post) => ({
