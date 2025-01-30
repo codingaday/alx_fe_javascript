@@ -1,56 +1,27 @@
-// State management
-const quoteState = {
-  quotes: JSON.parse(localStorage.getItem("quotes")) || [],
-  conflicts: [],
-  pendingChanges: [],
-};
+// Add notification system
+function showNotification(message, type = "info") {
+  const notification = document.createElement("div");
+  notification.className = `notification ${type}`;
+  notification.innerHTML = `
+   <span>${message}</span>
+   <button class="dismiss-btn">×</button>
+ `;
 
-// Server simulation constants
-const SERVER_URL = "https://jsonplaceholder.typicode.com/posts";
-const SYNC_INTERVAL = 30000;
+  // Auto-remove after 5 seconds
+  setTimeout(() => notification.remove(), 5000);
 
-// DOM elements
-const notificationContainer = document.createElement("div");
-notificationContainer.id = "notifications";
-document.body.appendChild(notificationContainer);
+  // Manual dismiss
+  notification.querySelector(".dismiss-btn").addEventListener("click", () => {
+    notification.remove();
+  });
 
-// Server communication
-async function fetchQuotesFromServer() {
-  try {
-    const response = await fetch(SERVER_URL);
-    if (!response.ok) throw new Error("Server error");
-    const data = await response.json();
-    return data.map((post) => ({
-      id: `server-${post.id}`,
-      text: post.title,
-      category: "general",
-      timestamp: Date.now(),
-    }));
-  } catch (error) {
-    showNotification(`Server error: ${error.message}`, "error");
-    return [];
-  }
+  document.getElementById("notifications").appendChild(notification);
 }
 
-async function postQuoteToServer(quote) {
-  try {
-    await fetch(SERVER_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: quote.text,
-        body: quote.category,
-        userId: 1,
-      }),
-    });
-  } catch (error) {
-    quoteState.pendingChanges.push(quote);
-    showNotification("Failed to save to server - changes queued", "warning");
-  }
-}
-
-// Sync logic
+// Modified sync function with notifications
 async function syncQuotes() {
+  showNotification("Syncing with server...", "pending");
+
   try {
     const serverQuotes = await fetchQuotesFromServer();
     const mergeResult = mergeQuotes(serverQuotes, quoteState.quotes);
@@ -60,132 +31,109 @@ async function syncQuotes() {
 
     localStorage.setItem("quotes", JSON.stringify(quoteState.quotes));
 
-    if (mergeResult.conflicts.length > 0) {
-      showConflictResolution(mergeResult.conflicts);
-    }
+    const message =
+      mergeResult.conflicts.length > 0
+        ? `Synced ${mergeResult.newQuotes} items. ${mergeResult.conflicts.length} conflicts need resolution`
+        : `Synced ${mergeResult.newQuotes} new quotes successfully`;
 
     showNotification(
-      `Synced ${mergeResult.newQuotes} new quotes, ` +
-        `${mergeResult.conflicts.length} conflicts detected`,
+      message,
       mergeResult.conflicts.length ? "warning" : "success"
     );
+
+    if (mergeResult.conflicts.length > 0) {
+      showConflictResolution(mergeResult.conflicts);
+      showNotification("Conflicts detected! Click to resolve", "error");
+    }
   } catch (error) {
     showNotification(`Sync failed: ${error.message}`, "error");
   }
 }
 
-function mergeQuotes(serverQuotes, localQuotes) {
-  const merged = [];
-  const conflicts = [];
-  let newQuotes = 0;
-
-  // Process server quotes first
-  serverQuotes.forEach((serverQuote) => {
-    const localMatch = localQuotes.find((q) => q.id === serverQuote.id);
-
-    if (!localMatch) {
-      merged.push(serverQuote);
-      newQuotes++;
-    } else if (serverQuote.text !== localMatch.text) {
-      conflicts.push({ server: serverQuote, local: localMatch });
-      merged.push(
-        serverQuote.timestamp > localMatch.timestamp ? serverQuote : localMatch
-      );
-    } else {
-      merged.push(serverQuote);
-    }
-  });
-
-  // Add remaining local quotes
-  localQuotes.forEach((localQuote) => {
-    if (!merged.some((q) => q.id === localQuote.id)) {
-      merged.push(localQuote);
-    }
-  });
-
-  return { mergedQuotes: merged, conflicts, newQuotes };
-}
-
-// Conflict resolution UI
+// Enhanced conflict UI
 function showConflictResolution(conflicts) {
   const resolutionDiv = document.createElement("div");
   resolutionDiv.className = "conflict-resolution";
   resolutionDiv.innerHTML = `
-   <h3>Resolve Conflicts (${conflicts.length})</h3>
-   <div class="conflict-list">
-     ${conflicts
-       .map(
-         (conflict, index) => `
-       <div class="conflict-item">
+   <h3>Resolve Content Conflicts</h3>
+   <div class="conflict-counter">Conflicts found: ${conflicts.length}</div>
+   ${conflicts
+     .map(
+       (conflict, index) => `
+     <div class="conflict-item" data-id="${conflict.server.id}">
+       <div class="versions">
          <div class="server-version">
-           <h4>Server Version:</h4>
+           <h4>Server Version</h4>
            <p>${conflict.server.text}</p>
-           <small>${new Date(
+           <small>Updated: ${new Date(
              conflict.server.timestamp
            ).toLocaleString()}</small>
          </div>
          <div class="local-version">
-           <h4>Your Version:</h4>
+           <h4>Your Version</h4>
            <p>${conflict.local.text}</p>
-           <small>${new Date(conflict.local.timestamp).toLocaleString()}</small>
-         </div>
-         <div class="actions">
-           <button data-index="${index}" data-action="server">Use Server</button>
-           <button data-index="${index}" data-action="local">Keep Yours</button>
+           <small>Updated: ${new Date(
+             conflict.local.timestamp
+           ).toLocaleString()}</small>
          </div>
        </div>
-     `
-       )
-       .join("")}
-   </div>
+       <div class="resolution-actions">
+         <button data-action="keep-server">Use Server Version</button>
+         <button data-action="keep-local">Keep Local Version</button>
+       </div>
+     </div>
+   `
+     )
+     .join("")}
  `;
-
-  resolutionDiv.querySelectorAll("button").forEach((button) => {
-    button.addEventListener("click", (e) => {
-      const index = parseInt(e.target.dataset.index);
-      const action = e.target.dataset.action;
-      resolveConflict(index, action);
-      if (conflicts.length === 0) resolutionDiv.remove();
-    });
-  });
 
   document.body.appendChild(resolutionDiv);
 }
 
-function resolveConflict(index, action) {
-  const conflict = quoteState.conflicts[index];
-  quoteState.quotes = quoteState.quotes.filter(
-    (q) => q.id !== conflict.server.id && q.id !== conflict.local.id
-  );
+// Add this CSS
+const style = document.createElement("style");
+style.textContent = `
+ #notifications {
+   position: fixed;
+   top: 20px;
+   right: 20px;
+   z-index: 1000;
+   max-width: 300px;
+ }
 
-  if (action === "server") {
-    quoteState.quotes.push(conflict.server);
-  } else {
-    quoteState.quotes.push(conflict.local);
-  }
+ .notification {
+   padding: 15px;
+   margin-bottom: 10px;
+   border-radius: 5px;
+   background: #f8f9fa;
+   box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+ }
 
-  localStorage.setItem("quotes", JSON.stringify(quoteState.quotes));
-  quoteState.conflicts.splice(index, 1);
-}
+ .notification.success { background: #d4edda; border-left: 4px solid #28a745; }
+ .notification.error { background: #f8d7da; border-left: 4px solid #dc3545; }
+ .notification.warning { background: #fff3cd; border-left: 4px solid #ffc107; }
+ .notification.pending { background: #cce5ff; border-left: 4px solid #007bff; }
 
-// UI helpers
-function showNotification(message, type = "info") {
-  const notification = document.createElement("div");
-  notification.className = `notification ${type}`;
-  notification.textContent = message;
-  notificationContainer.appendChild(notification);
+ .dismiss-btn {
+   background: none;
+   border: none;
+   cursor: pointer;
+   font-size: 1.2em;
+   margin-left: 10px;
+ }
 
-  setTimeout(() => notification.remove(), type === "error" ? 5000 : 3000);
-}
-
-// Initialize
-document.addEventListener("DOMContentLoaded", () => {
-  // Initial sync
-  syncQuotes();
-
-  // Periodic sync
-  setInterval(syncQuotes, SYNC_INTERVAL);
-
-  // Manual sync button
-  document.getElementById("manualSync")?.addEventListener("click", syncQuotes);
-});
+ .conflict-resolution {
+   position: fixed;
+   bottom: 20px;
+   left: 20px;
+   background: white;
+   padding: 20px;
+   box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+   max-width: 400px;
+   z-index: 1000;
+ }
+`;
+document.head.appendChild(style);
