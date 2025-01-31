@@ -88,14 +88,21 @@
 
     <!-- ///////////////////////////////// -->
 
+    <!-- task2 -->
     <h1>Dynamic Quote Generator</h1>
 
+    <!-- Category Filter Dropdown -->
+    <select id="categoryFilter" onchange="filterQuotes()">
+      <option value="all">All Categories</option>
+      <!-- Dynamically populated categories will appear here -->
+    </select>
+
+    <!-- Display the filtered quotes -->
     <div id="quoteDisplay"></div>
-    <!-- Placeholder for the quote display -->
 
     <button id="newQuote">Show New Quote</button>
-    <!-- Button to show a new quote -->
 
+    <!-- Form to add a new quote -->
     <div>
       <input id="newQuoteText" type="text" placeholder="Enter a new quote" />
       <input
@@ -105,7 +112,6 @@
       />
       <button onclick="addQuote()">Add Quote</button>
     </div>
-    <!-- Form to add a new quote -->
 
     <!-- Buttons to export and import quotes -->
     <button onclick="exportToJson()">Export Quotes to JSON</button>
