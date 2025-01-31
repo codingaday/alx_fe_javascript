@@ -1,5 +1,7 @@
 ///////////////////////////////////////////////////
+
 //Task 2
+
 // Initialize the quotes array from localStorage or use a default set
 let quotes = JSON.parse(localStorage.getItem("quotes")) || [
   {
@@ -38,7 +40,7 @@ function showRandomQuote() {
 }
 
 // Function to add a new quote
-function addQuote() {
+function createAddQuoteForm() {
   const newQuoteText = document.getElementById("newQuoteText").value; // Get the quote text
   const newQuoteCategory = document.getElementById("newQuoteCategory").value; // Get the quote category
 
@@ -284,7 +286,7 @@ class QuoteSyncer {
   }
 
   // Update addQuote method to use this
-  async addQuote(quote) {
+  async createAddQuoteForm(quote) {
     await this.postQuoteToServer(quote);
     // Rest of existing logic
   }
