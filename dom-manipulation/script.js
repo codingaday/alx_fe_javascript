@@ -8,19 +8,25 @@ const categoryFilter = document.getElementById("categoryFilter");
 
 // Function to display quotes based on category selection
 function filterQuotes() {
-  const selectedCategory = categoryFilter.value;
-  localStorage.setItem("selectedCategory", selectedCategory);
+  const selectedCategory = document.getElementById("categoryFilter").value;
+  localStorage.setItem("selectedCategory", selectedCategory); // Save filter preference
 
   const filteredQuotes =
     selectedCategory === "all"
       ? quotes
-      : quotes.filter((q) => q.category === selectedCategory);
+      : quotes.filter((quote) => quote.category === selectedCategory);
 
+  displayQuotes(filteredQuotes);
+}
+
+function displayQuotes(filteredQuotes) {
+  const quoteDisplay = document.getElementById("quoteDisplay");
   quoteDisplay.innerHTML = "";
-  filteredQuotes.forEach((q) => {
-    const p = document.createElement("p");
-    p.textContent = `"${q.text}" - ${q.category}`;
-    quoteDisplay.appendChild(p);
+
+  filteredQuotes.forEach((quote) => {
+    const quoteElement = document.createElement("p");
+    quoteElement.textContent = `"${quote.text}" - ${quote.category}`;
+    quoteDisplay.appendChild(quoteElement);
   });
 }
 
