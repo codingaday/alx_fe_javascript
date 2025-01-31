@@ -181,29 +181,27 @@ class QuoteSyncer {
     const resolutionDiv = document.createElement("div");
     resolutionDiv.className = "conflict-resolution";
     resolutionDiv.innerHTML = `
-      <h3>Resolve Conflicts (${this.conflicts.length})</h3>
-      ${this.conflicts
-        .map(
-          (conflict) => `
-        <div class="conflict-item">
-          <p><strong>Server Version:</strong> ${conflict.server.text}</p>
-          <p><strong>Your Version:</strong> ${conflict.local.text}</p>
-          <div class="conflict-actions">
-            <button data-id="${conflict.server.id}" data-version="server">
-              Keep Server Version
-            </button>
-            <button data-id="${conflict.local.id}" data-version="local">
-              Keep Local Version
-            </button>
-          </div>
-        </div>
-      `
-        )
-        .join("")}
-    `;
-
-    document.body.appendChild(resolutionDiv);
-    this.addConflictListeners(resolutionDiv);
+     <h3>Resolve Conflicts (${this.conflicts.length})</h3>
+     ${this.conflicts
+       .map(
+         (conflict) => `
+       <div class="conflict-item">
+         <p><strong>Server Version:</strong> ${conflict.server.text}</p>
+         <p><strong>Your Version:</strong> ${conflict.local.text}</p>
+         <div class="conflict-actions">
+           <button data-id="${conflict.server.id}" data-version="server">
+             Keep Server Version
+           </button>
+           <button data-id="${conflict.local.id}" data-version="local">
+             Keep Local Version
+           </button>
+         </div>
+       </div>
+     `
+       )
+       .join("")}
+   `;
+    // ... listener setup ...
   }
 
   addConflictListeners(resolutionDiv) {
@@ -264,15 +262,16 @@ class QuoteSyncer {
   }
 
   // UI Utilities
-  showNotification(message, isError = false) {
+  showNotification(message, type = "info") {
     const notification = document.createElement("div");
-    notification.className = `notification ${isError ? "error" : "success"}`;
+    notification.className = `notification ${type}`;
     notification.textContent = message;
-    document.body.appendChild(notification);
+    document.getElementById("notifications").appendChild(notification);
 
-    setTimeout(() => notification.remove(), 3000);
+    if (type !== "conflict") {
+      setTimeout(() => notification.remove(), 5000);
+    }
   }
-
   updateUI() {
     // Existing UI update logic from previous implementation
     const event = new Event("quotesUpdated");
@@ -284,45 +283,69 @@ class QuoteSyncer {
   // Updated sync logic in QuoteSyncer class
   async syncWithServer() {
     try {
-      const serverQuotes = await this.fetchQuotesFromServer();
+      // ... sync logic ...
 
-      // 1. Identify truly new quotes (never seen before)
-      const newQuotes = serverQuotes.filter(
-        (serverQuote) =>
-          !this.quotes.some((localQuote) => localQuote.id === serverQuote.id)
-      );
-
-      // 2. Detect potential conflicts
-      const conflicts = this.quotes.filter((localQuote) => {
-        const serverQuote = serverQuotes.find((sq) => sq.id === localQuote.id);
-        return serverQuote && serverQuote.timestamp !== localQuote.timestamp;
-      });
-
-      // 3. Merge data with conflict resolution
-      const mergedQuotes = [
-        ...this.quotes.filter(
-          (localQuote) => !serverQuotes.some((sq) => sq.id === localQuote.id)
-        ),
-        ...serverQuotes,
-      ];
-
-      // 4. Update state and storage
-      this.quotes = mergedQuotes;
-      this.conflicts = conflicts;
-      localStorage.setItem("quotes", JSON.stringify(mergedQuotes));
-
-      // 5. Show accurate notification
-      this.showNotification(
-        `Synced ${newQuotes.length} new quotes. ` +
-          `Resolved ${conflicts.length} updates.`,
-        conflicts.length > 0
-      );
-
+      let syncMessage;
       if (conflicts.length > 0) {
-        this.showConflictResolution(conflicts);
+        syncMessage = `Sync complete. ${newQuotes} new quotes, ${conflicts.length} conflicts need attention`;
+        this.showNotification(syncMessage, "conflict");
+      } else if (newQuotes > 0) {
+        syncMessage = `${newQuotes} new quote${
+          newQuotes > 1 ? "s" : ""
+        } added from server`;
+        this.showNotification(syncMessage, "success");
+      } else {
+        syncMessage = "Data is up to date";
+        this.showNotification(syncMessage, "info");
       }
     } catch (error) {
-      this.showNotification(`Sync failed: ${error.message}`, true);
+      this.showNotification(`Sync failed: ${error.message}`, "error");
+    }
+    // ... error handling ...
+  }
+
+  // In the QuoteSyncer class, modify these methods:
+
+  showNotification(message, type = "info") {
+    const notification = document.createElement("div");
+    notification.className = `notification ${type}`;
+    notification.textContent = message; // Security: use textContent instead of innerHTML
+    document.getElementById("notifications").appendChild(notification);
+
+    // Auto-remove after 5 seconds for non-conflict notifications
+    if (type !== "conflict") {
+      setTimeout(() => notification.remove(), 5000);
+    }
+  }
+
+  async syncWithServer() {
+    try {
+      const serverQuotes = await this.fetchQuotesFromServer();
+      const { mergedQuotes, conflicts, newQuotes } =
+        this.mergeData(serverQuotes);
+
+      // Update notification logic
+      let syncMessage;
+      if (conflicts.length > 0) {
+        syncMessage = `Sync complete. ${newQuotes} new quotes, ${conflicts.length} conflicts need attention`;
+        this.showNotification(syncMessage, "conflict");
+        this.showConflictResolution();
+      } else if (newQuotes > 0) {
+        syncMessage = `${newQuotes} new quote${
+          newQuotes > 1 ? "s" : ""
+        } added from server`;
+        this.showNotification(syncMessage, "success");
+      } else {
+        syncMessage = "Data is up to date";
+        this.showNotification(syncMessage, "info");
+      }
+
+      localStorage.setItem("quotes", JSON.stringify(mergedQuotes));
+      this.quotes = mergedQuotes;
+      this.conflicts = conflicts;
+      this.updateUI();
+    } catch (error) {
+      this.showNotification(`Sync failed: ${error.message}`, "error");
     }
   }
   setupEventListeners() {
@@ -335,3 +358,19 @@ class QuoteSyncer {
 
 // Initialize the syncer
 const quoteSyncer = new QuoteSyncer();
+
+// Add to your styles
+const style = document.createElement("style");
+style.textContent = `
+  .notification {
+    padding: 15px;
+    margin: 10px;
+    border-radius: 5px;
+    color: white;
+  }
+  .notification.success { background: #4CAF50; }
+  .notification.error { background: #f44336; }
+  .notification.info { background: #2196F3; }
+  .notification.conflict { background: #ff9800; }
+`;
+document.head.appendChild(style);
