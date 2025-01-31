@@ -66,9 +66,9 @@
     </style>
   </head>
   <body>
-    <h1>Dynamic Quote Generator</h1>
+    <!-- <h1>Dynamic Quote Generator</h1> -->
 
-    <div>
+    <!-- <div>
       <select id="categoryFilter">
         <option value="all">All Categories</option>
       </select>
@@ -84,7 +84,39 @@
     </div>
 
     <button id="manualSync">Manual Sync</button>
-    <div id="notificationContainer"></div>
+    <div id="notificationContainer"></div> -->
+
+    <!-- ///////////////////////////////// -->
+
+    <h1>Dynamic Quote Generator</h1>
+
+    <div id="quoteDisplay"></div>
+    <!-- Placeholder for the quote display -->
+
+    <button id="newQuote">Show New Quote</button>
+    <!-- Button to show a new quote -->
+
+    <div>
+      <input id="newQuoteText" type="text" placeholder="Enter a new quote" />
+      <input
+        id="newQuoteCategory"
+        type="text"
+        placeholder="Enter quote category"
+      />
+      <button onclick="addQuote()">Add Quote</button>
+    </div>
+    <!-- Form to add a new quote -->
+
+    <!-- Buttons to export and import quotes -->
+    <button onclick="exportToJson()">Export Quotes to JSON</button>
+    <input
+      type="file"
+      id="importFile"
+      accept=".json"
+      onchange="importFromJsonFile(event)"
+    />
+
+    <!-- ////////////////////////////////////// -->
 
     <script src="script.js"></script>
   </body>
