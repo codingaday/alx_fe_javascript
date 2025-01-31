@@ -177,31 +177,36 @@ class QuoteSyncer {
     return Array.from(quoteMap.values());
   }
 
+  // Conflict UI uses DOM methods (no alerts)
   showConflictResolution() {
     const resolutionDiv = document.createElement("div");
-    resolutionDiv.className = "conflict-resolution";
+    resolutionDiv.className = "conflict-ui";
     resolutionDiv.innerHTML = `
-     <h3>Resolve Conflicts (${this.conflicts.length})</h3>
-     ${this.conflicts
-       .map(
-         (conflict) => `
-       <div class="conflict-item">
-         <p><strong>Server Version:</strong> ${conflict.server.text}</p>
-         <p><strong>Your Version:</strong> ${conflict.local.text}</p>
-         <div class="conflict-actions">
-           <button data-id="${conflict.server.id}" data-version="server">
-             Keep Server Version
-           </button>
-           <button data-id="${conflict.local.id}" data-version="local">
-             Keep Local Version
-           </button>
-         </div>
+   <h3>Resolve Version Conflicts</h3>
+   ${this.conflicts
+     .map(
+       (conflict, index) => `
+     <div class="conflict-card" data-index="${index}">
+       <div class="server-version">
+         <h4>Server Update:</h4>
+         <p>${conflict.server.text}</p>
+         <small>${new Date(conflict.server.timestamp).toLocaleString()}</small>
        </div>
-     `
-       )
-       .join("")}
-   `;
-    // ... listener setup ...
+       <div class="local-version">
+         <h4>Your Version:</h4>
+         <p>${conflict.local.text}</p>
+         <small>${new Date(conflict.local.timestamp).toLocaleString()}</small>
+       </div>
+       <div class="resolution-options">
+         <button data-action="accept-server">Use Server Version</button>
+         <button data-action="keep-local">Keep Local Version</button>
+       </div>
+     </div>
+   `
+     )
+     .join("")}
+ `;
+    document.body.appendChild(resolutionDiv);
   }
 
   addConflictListeners(resolutionDiv) {
@@ -306,46 +311,40 @@ class QuoteSyncer {
 
   // In the QuoteSyncer class, modify these methods:
 
+  // Modified showNotification method (no alerts, secure DOM manipulation)
   showNotification(message, type = "info") {
     const notification = document.createElement("div");
     notification.className = `notification ${type}`;
-    notification.textContent = message; // Security: use textContent instead of innerHTML
+    notification.textContent = message; // textContent instead of innerHTML
     document.getElementById("notifications").appendChild(notification);
 
-    // Auto-remove after 5 seconds for non-conflict notifications
+    // Auto-dismiss non-conflict notifications
     if (type !== "conflict") {
       setTimeout(() => notification.remove(), 5000);
     }
   }
 
+  // Updated syncWithServer notifications
   async syncWithServer() {
     try {
-      const serverQuotes = await this.fetchQuotesFromServer();
-      const { mergedQuotes, conflicts, newQuotes } =
-        this.mergeData(serverQuotes);
+      // ... existing sync logic ...
 
-      // Update notification logic
-      let syncMessage;
+      // Conflict-aware notifications
       if (conflicts.length > 0) {
-        syncMessage = `Sync complete. ${newQuotes} new quotes, ${conflicts.length} conflicts need attention`;
-        this.showNotification(syncMessage, "conflict");
-        this.showConflictResolution();
+        this.showNotification(
+          `${conflicts.length} conflicts needing resolution | ${newQuotes} new items added`,
+          "conflict"
+        );
       } else if (newQuotes > 0) {
-        syncMessage = `${newQuotes} new quote${
-          newQuotes > 1 ? "s" : ""
-        } added from server`;
-        this.showNotification(syncMessage, "success");
+        this.showNotification(
+          `Added ${newQuotes} new quote${newQuotes > 1 ? "s" : ""} from server`,
+          "success"
+        );
       } else {
-        syncMessage = "Data is up to date";
-        this.showNotification(syncMessage, "info");
+        this.showNotification("All quotes are current", "info");
       }
-
-      localStorage.setItem("quotes", JSON.stringify(mergedQuotes));
-      this.quotes = mergedQuotes;
-      this.conflicts = conflicts;
-      this.updateUI();
     } catch (error) {
-      this.showNotification(`Sync failed: ${error.message}`, "error");
+      this.showNotification(`Sync error: ${error.message}`, "error");
     }
   }
   setupEventListeners() {
@@ -360,6 +359,7 @@ class QuoteSyncer {
 const quoteSyncer = new QuoteSyncer();
 
 // Add to your styles
+// Notification styles added through JS
 const style = document.createElement("style");
 style.textContent = `
   .notification {
@@ -367,10 +367,17 @@ style.textContent = `
     margin: 10px;
     border-radius: 5px;
     color: white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
   }
   .notification.success { background: #4CAF50; }
   .notification.error { background: #f44336; }
   .notification.info { background: #2196F3; }
-  .notification.conflict { background: #ff9800; }
+  .notification.conflict { 
+    background: #ff9800;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
 `;
 document.head.appendChild(style);
