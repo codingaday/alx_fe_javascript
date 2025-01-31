@@ -1,3 +1,66 @@
+///////////////////////////////////////////////////
+//Task 2
+const quotes = JSON.parse(localStorage.getItem("quotes")) || [
+  {
+    text: "The best way to predict the future is to invent it.",
+    category: "Motivation",
+  },
+  {
+    text: "Life is 10% what happens to us and 90% how we react to it.",
+    category: "Life",
+  },
+  {
+    text: "Success is not final, failure is not fatal: it is the courage to continue that counts.",
+    category: "Success",
+  },
+];
+
+const categoryFilter = document.getElementById("categoryFilter");
+const quoteDisplay = document.getElementById("quoteDisplay");
+
+function populateCategories() {
+  const categories = ["all", ...new Set(quotes.map((q) => q.category))];
+  categoryFilter.innerHTML = categories
+    .map((cat) => `<option value="${cat}">${cat}</option>`)
+    .join("");
+  categoryFilter.value = localStorage.getItem("selectedCategory") || "all";
+}
+
+function filterQuotes() {
+  const selectedCategory = categoryFilter.value;
+  localStorage.setItem("selectedCategory", selectedCategory);
+  const filteredQuotes =
+    selectedCategory === "all"
+      ? quotes
+      : quotes.filter((q) => q.category === selectedCategory);
+  displayQuotes(filteredQuotes);
+}
+
+function displayQuotes(filteredQuotes = quotes) {
+  quoteDisplay.innerHTML = filteredQuotes
+    .map((q) => `<p>${q.text} - <em>${q.category}</em></p>`)
+    .join("");
+}
+
+function addQuote() {
+  const newQuoteText = document.getElementById("newQuoteText").value;
+  const newQuoteCategory = document.getElementById("newQuoteCategory").value;
+  if (newQuoteText && newQuoteCategory) {
+    const newQuote = { text: newQuoteText, category: newQuoteCategory };
+    quotes.push(newQuote);
+    localStorage.setItem("quotes", JSON.stringify(quotes));
+    populateCategories();
+    filterQuotes();
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  populateCategories();
+  filterQuotes();
+});
+
+//////////////////////////////////////
+
 // Server Simulation & Sync Module
 const SERVER_URL = "https://jsonplaceholder.typicode.com/posts";
 const SYNC_INTERVAL = 30000; // 30 seconds
