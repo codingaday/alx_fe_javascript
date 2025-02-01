@@ -5,63 +5,150 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dynamic Quote Generator</title>
     <style>
+      /* styles.css */
+      /* General Body Styles */
       body {
-        font-family: Arial, sans-serif;
+        font-family: "Arial", sans-serif;
         text-align: center;
-        margin: 20px;
-        background-color: #f4f4f4;
+        background-color: #f7f7f7;
+        margin: 0;
+        padding: 0;
       }
 
+      /* Main Title */
       h1 {
-        color: #333;
+        color: #4e73df;
+        font-size: 2.5rem;
+        margin: 20px 0;
+        text-transform: uppercase;
+        letter-spacing: 2px;
       }
 
+      /* Quote Display */
       #quoteDisplay {
-        background: white;
+        background: #fff;
         padding: 20px;
         margin: 20px auto;
-        width: 35%;
-        text-align: left;
+        width: 90%;
+        max-width: 600px;
+        text-align: center;
         border-radius: 8px;
-        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        font-size: 1.25rem;
+        color: #333;
+        transition: all 0.3s ease;
       }
 
-      button {
-        padding: 10px 15px;
-        margin-top: 10px;
-        border: none;
-        border-radius: 5px;
-        background-color: #28a745;
-        color: white;
+      #quoteDisplay:hover {
+        background: #fafafa;
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+      }
+
+      /* Buttons and Inputs */
+      button,
+      select {
+        padding: 12px 20px;
+        padding: 20px 30px;
+        margin: 20px 10px;
+        font-size: 1rem;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        width: 80%;
+        max-width: 350px;
+        background-color: #f2f2f2;
+
+        color: #555;
         cursor: pointer;
-        font-size: 16px;
+        transition: 0.3s;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
       }
 
-      button:hover {
-        background-color: #218838;
+      /* Focus and Hover Effects */
+      button:hover,
+      select:hover,
+      .file:hover,
+      button:focus,
+      select:focus {
+        background-color: #4e73df;
+        color: white;
+        border-color: #2e59d9;
+        box-shadow: 0 0 5px rgba(46, 89, 217, 0.5);
       }
 
       input {
-        padding: 10px;
-        margin: 10px;
+        padding: 12px 20px;
+        padding: 20px 30px;
+        margin: 20px 10px;
+        font-size: 1rem;
         border: 1px solid #ccc;
-        border-radius: 5px;
-        width: 200px;
+        border-radius: 8px;
+        width: 80%;
+        max-width: 350px;
+        background-color: #f2f2f2;
+
+        color: #555;
+
+        transition: 0.3s;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
       }
 
-      .controls {
+      input:hover::placeholder {
+        color: #333;
+      }
+
+      /* Category Dropdown */
+      #categoryFilter {
+        width: 80%;
+        max-width: 350px;
         margin-top: 20px;
+        background-color: #f7f7f7;
+        color: #333;
+        border: 1px solid #ccc;
+        font-size: 1rem;
+        border-radius: 8px;
+        cursor: pointer;
+        padding: 10px 20px;
       }
 
-      #syncStatus {
-        margin-top: 10px;
-        font-size: 14px;
-        color: red;
+      /* Category Dropdown Hover */
+      #categoryFilter:hover {
+        background-color: #e0e0e0;
+      }
+
+      /* Notification */
+      .notification {
+        background: #d4edda;
+        color: #155724;
+        font-weight: bold;
+        padding: 10px;
+        margin-top: 20px;
+        border-radius: 5px;
+        display: none;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+
+      /* Container for Buttons */
+      .controls {
+        margin: 20px 0;
+      }
+
+      /* Responsive Design */
+      @media (max-width: 768px) {
+        button,
+        input,
+        select {
+          width: 90%;
+        }
+        #quoteDisplay {
+          width: 90%;
+        }
       }
     </style>
   </head>
   <body>
     <h1>Dynamic Quote Generator</h1>
+
     <select id="categoryFilter" onchange="filterQuotes()">
       <option value="all">All Categories</option>
     </select>
@@ -75,6 +162,7 @@
         >Import Quotes (JSON):</label
       >
       <input
+        class="file"
         type="file"
         id="importFile"
         accept=".json"
@@ -82,7 +170,10 @@
       />
     </div>
 
-    <div id="syncStatus">Syncing with server...</div>
+    <!-- Notification for sync updates -->
+    <div id="syncNotification" class="notification">
+      <strong>Server Sync Complete</strong>
+    </div>
 
     <script src="script.js"></script>
   </body>
