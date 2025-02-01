@@ -61,7 +61,7 @@ function addQuote() {
     localStorage.setItem("quotes", JSON.stringify(quotes));
 
     // Sync with server
-    syncToServer(newQuote);
+    syncQuotes(newQuote);
 
     // Clear input fields
     document.getElementById("newQuoteText").value = "";
@@ -154,7 +154,7 @@ function importFromJsonFile(event) {
 }
 
 // Function to sync a new quote with the server
-async function syncToServer(newQuote) {
+async function syncQuotes(newQuote) {
   try {
     const response = await fetch(SERVER_URL, {
       method: "POST",
