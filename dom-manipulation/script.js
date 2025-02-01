@@ -173,7 +173,7 @@ async function syncToServer(newQuote) {
 }
 
 // Function to fetch and sync quotes from the server
-async function fetchAndSyncQuotes() {
+async function fetchQuotesFromServer() {
   try {
     const response = await fetch(SERVER_URL);
     const serverQuotes = await response.json();
@@ -214,7 +214,7 @@ function mergeQuotes(serverQuotes, localQuotes) {
 }
 
 // Auto-sync every 30 seconds
-setInterval(fetchAndSyncQuotes, 30000);
+setInterval(fetchQuotesFromServer, 30000);
 
 // Attach event listener to show a new quote
 document.getElementById("newQuote").addEventListener("click", showRandomQuote);
@@ -222,7 +222,7 @@ document.getElementById("newQuote").addEventListener("click", showRandomQuote);
 // Load the last viewed quote from session storage on page load
 document.addEventListener("DOMContentLoaded", () => {
   populateCategories();
-  fetchAndSyncQuotes();
+  fetchQuotesFromServer();
 
   const lastViewedQuote = JSON.parse(sessionStorage.getItem("lastViewedQuote"));
   if (lastViewedQuote) {
@@ -234,5 +234,18 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-localStorage.clear();
-sessionStorage.clear();
+// Add input fields dynamically
+function createAddQuoteForm() {
+  document.addEventListener("DOMContentLoaded", () => {
+    const inputContainer = document.createElement("div");
+    inputContainer.innerHTML = `
+     <input id="newQuoteText" type="text" placeholder="Enter a new quote" />
+     <input id="newQuoteCategory" type="text" placeholder="Enter quote category" />
+     <button onclick="addQuote()">Add Quote</button>
+ `;
+    document.body.appendChild(inputContainer);
+
+    displayQuotes();
+  });
+}
+createAddQuoteForm();
