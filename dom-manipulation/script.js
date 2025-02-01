@@ -166,7 +166,7 @@ function showRandomQuote() {
   }]`; // Default to "General" if category is missing
 }
 
-// Add a new quote
+// Function to add a new quote
 function addQuote() {
   const newQuoteText = document.getElementById("newQuoteText").value.trim();
   const newQuoteCategory = document
@@ -175,9 +175,17 @@ function addQuote() {
 
   if (newQuoteText && newQuoteCategory) {
     quotes.push({ text: newQuoteText, category: newQuoteCategory });
+
+    // Save updated quotes array to local storage
+    localStorage.setItem("quotes", JSON.stringify(quotes));
+
+    // Clear input fields
+    document.getElementById("newQuoteText").value = "";
+    document.getElementById("newQuoteCategory").value = "";
+
     alert("Quote added successfully!");
-    displayQuotes();
-    syncQuotes(); // Trigger sync with server after adding a new quote
+    populateCategories(); // Update the category dropdown with the new category
+    filterQuotes(); // Re-display the quotes according to the selected filter
   } else {
     alert("Please enter both a quote and a category.");
   }
