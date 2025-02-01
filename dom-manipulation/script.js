@@ -56,7 +56,7 @@ function createAddQuoteForm() {
 createAddQuoteForm();
 
 // Fetch server data (Simulate server interaction)
-async function fetchFromServer() {
+async function fetchQuotesFromServer() {
   try {
     const response = await fetch(SERVER_URL);
     const data = await response.json();
@@ -86,7 +86,7 @@ async function postToServer() {
 
 // Function to sync data
 async function syncWithServer() {
-  const serverQuotes = await fetchFromServer();
+  const serverQuotes = await fetchQuotesFromServer();
 
   // Resolve conflicts: If a quote exists both locally and on the server, prioritize server's data
   serverQuotes.forEach((serverQuote) => {
