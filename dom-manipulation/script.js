@@ -229,6 +229,11 @@ setInterval(syncQuotes, 30000);
 
 // Initial setup
 document.addEventListener("DOMContentLoaded", () => {
+  const storedQuotes = localStorage.getItem("quotes");
+  if (storedQuotes) {
+    quotes = JSON.parse(storedQuotes);
+  }
+
   populateCategories();
   showRandomQuote();
   syncQuotes();
