@@ -109,7 +109,7 @@ async function syncQuotes() {
 function displaySyncNotification() {
   const syncNotification = document.getElementById("syncNotification");
   const currentTime = new Date().toLocaleTimeString();
-  syncNotification.innerHTML = `Last synced at: ${currentTime}`;
+  syncNotification.innerHTML = `Quotes synced with server!<br>Last synced at: ${currentTime}`;
   syncNotification.style.display = "block";
   setTimeout(() => {
     syncNotification.style.display = "none";
