@@ -23,12 +23,12 @@ const SERVER_URL = "https://jsonplaceholder.typicode.com/posts";
 // Function to update sync status dynamically
 function updateSyncMessage(message, status = "info") {
   const syncStatus = document.getElementById("syncStatus");
-  syncStatus.innerText = `[${new Date().toLocaleTimeString()}] ${message}`;
+  syncStatus.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
   syncStatus.style.color = status === "error" ? "red" : "green";
 
   // Auto-clear message after 5 seconds
   setTimeout(() => {
-    syncStatus.innerText = "";
+    syncStatus.textContent = "";
   }, 5000);
 }
 
@@ -40,7 +40,7 @@ function showRandomQuote() {
   const randomIndex = Math.floor(Math.random() * quotes.length);
   const randomQuote = quotes[randomIndex];
 
-  quoteDisplay.innerText = `${randomQuote.text} - [${randomQuote.category}]`;
+  quoteDisplay.textContent = `${randomQuote.text} - [${randomQuote.category}]`;
 
   // Store last displayed quote in session storage
   sessionStorage.setItem("lastViewedQuote", JSON.stringify(randomQuote));
@@ -84,7 +84,7 @@ function populateCategories() {
   categories.forEach((category) => {
     const option = document.createElement("option");
     option.value = category;
-    option.innerText = category;
+    option.textContent = category;
     categoryFilter.appendChild(option);
   });
 
@@ -110,7 +110,7 @@ function filterQuotes() {
 
   filteredQuotes.forEach((quote) => {
     const quoteElement = document.createElement("p");
-    quoteElement.innerText = `${quote.text} - [${quote.category}]`;
+    quoteElement.textContent = `${quote.text} - [${quote.category}]`;
     quoteDisplay.appendChild(quoteElement);
   });
 }
@@ -228,7 +228,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (lastViewedQuote) {
     document.getElementById(
       "quoteDisplay"
-    ).innerText = `${lastViewedQuote.text} - [${lastViewedQuote.category}]`;
+    ).textContent = `${lastViewedQuote.text} - [${lastViewedQuote.category}]`;
   } else {
     showRandomQuote();
   }
