@@ -7,81 +7,69 @@
     <style>
       body {
         font-family: Arial, sans-serif;
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 20px;
+        text-align: center;
+        margin: 20px;
+        background-color: #f4f4f4;
       }
+
+      h1 {
+        color: #333;
+      }
+
       #quoteDisplay {
-        margin: 20px 0;
+        background: white;
         padding: 20px;
-        border: 1px solid #ddd;
-        min-height: 100px;
+        margin: 20px auto;
+        width: 35%;
+        text-align: left;
+        border-radius: 8px;
+        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
       }
+
       button {
-        padding: 8px 16px;
+        padding: 10px 15px;
+        margin-top: 10px;
+        border: none;
+        border-radius: 5px;
+        background-color: #28a745;
+        color: white;
         cursor: pointer;
+        font-size: 16px;
       }
-      select,
+
+      button:hover {
+        background-color: #218838;
+      }
+
       input {
-        margin-right: 10px;
-        padding: 8px;
+        padding: 10px;
+        margin: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        width: 200px;
       }
-      .form-section {
+
+      .controls {
         margin-top: 20px;
       }
 
-      .conflict-resolution {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: white;
-        padding: 20px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        z-index: 1000;
-      }
-
-      .notification {
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        padding: 15px;
-        border-radius: 5px;
-      }
-
-      .notification.success {
-        background: #d4edda;
-        color: #155724;
-      }
-
-      .notification.error {
-        background: #f8d7da;
-        color: #721c24;
-      }
-
-      .conflict-item {
-        margin: 15px 0;
-        padding: 10px;
-        border: 1px solid #ddd;
+      #syncStatus {
+        margin-top: 10px;
+        font-size: 14px;
+        color: red;
       }
     </style>
   </head>
   <body>
-    <!-- task2 -->
     <h1>Dynamic Quote Generator</h1>
-
-    <!-- Category Filter Dropdown -->
     <select id="categoryFilter" onchange="filterQuotes()">
       <option value="all">All Categories</option>
-      <!-- Dynamically populated categories will appear here -->
     </select>
 
-    <!-- Display the filtered quotes -->
-    <div id="quoteDisplay"></div>
-
+    <div id="quoteDisplay">Click "Show New Quote" to see a quote.</div>
     <button id="newQuote">Show New Quote</button>
 
-    <!-- Form to add a new quote -->
-    <div>
+    <div class="controls">
       <input id="newQuoteText" type="text" placeholder="Enter a new quote" />
       <input
         id="newQuoteCategory"
@@ -91,16 +79,20 @@
       <button onclick="addQuote()">Add Quote</button>
     </div>
 
-    <!-- Buttons to export and import quotes -->
-    <button onclick="exportToJson()">Export Quotes to JSON</button>
-    <input
-      type="file"
-      id="importFile"
-      accept=".json"
-      onchange="importFromJsonFile(event)"
-    />
+    <div class="controls">
+      <button onclick="exportToJsonFile()">Export Quotes</button>
+      <label for="importFile" style="margin-left: 2rem; margin-right: -0.5rem"
+        >Import Quotes (JSON):</label
+      >
+      <input
+        type="file"
+        id="importFile"
+        accept=".json"
+        onchange="importFromJsonFile(event)"
+      />
+    </div>
 
-    <!-- ////////////////////////////////////// -->
+    <div id="syncStatus">Syncing with server...</div>
 
     <script src="script.js"></script>
   </body>
