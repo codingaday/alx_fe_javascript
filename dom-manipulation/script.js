@@ -85,7 +85,7 @@ async function postToServer() {
 }
 
 // Function to sync data
-async function syncWithServer() {
+async function syncQuotes() {
   const serverQuotes = await fetchQuotesFromServer();
 
   // Resolve conflicts: If a quote exists both locally and on the server, prioritize server's data
@@ -177,7 +177,7 @@ function addQuote() {
     quotes.push({ text: newQuoteText, category: newQuoteCategory });
     alert("Quote added successfully!");
     displayQuotes();
-    syncWithServer(); // Trigger sync with server after adding a new quote
+    syncQuotes(); // Trigger sync with server after adding a new quote
   } else {
     alert("Please enter both a quote and a category.");
   }
@@ -217,11 +217,11 @@ function importFromJsonFile(event) {
 document.getElementById("newQuote").addEventListener("click", showRandomQuote);
 
 // Auto-sync every 30 seconds
-setInterval(syncWithServer, 30000);
+setInterval(syncQuotes, 30000);
 
 // Initial setup
 document.addEventListener("DOMContentLoaded", () => {
   populateCategories();
   showRandomQuote();
-  syncWithServer();
+  syncQuotes();
 });
